@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <link rel="stylesheet" href="./dist/layui/css/layui.css">
+  <link rel="stylesheet" href="./dist/eleTree/eleTree.css">
+  <link rel="stylesheet" href="./dist/index.css">
+</head>
+
+<body layadmin-themealias="default" class="layui-layout-body">
+  <div id="tree">
+    <div class="layadmin-tabspage-none">
+      <div class="layui-layout layui-layout-admin">
+        <div class="layui-side layui-side-menu">
+          <div class="layui-side-scroll">
+            <div class="layui-logo" lay-href=""> <span>左边数据</span> </div>
+            <div class="eleTree treeleft" lay-filter="treeleft"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="layui-body" style="left: 250px;right: 250px;">
+      <div class="layui-fluid">
+        <div class="layui-row layui-col-space15">
+          <div class="layui-col-xs12">
+            <div class="layui-card">
+              <div class="layui-card-header">节点对应</div>
+              <div class="layui-card-body" style="max-height: 100px;overflow: auto;">
+                <div class="layui-btn-container LAY-senior-im-chat-demo tree-btn">
+                  <a class="layui-btn layui-btn-primary layui-btn-sm" :class="activeClass == index ? 'active':''"
+                    v-for="(item,index) in getData" v-if="index <= 10" v-on:click="getItem(index,item)">{{item.entity1}}
+                    -
+                    {{item.entity2}}</a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="layui-col-xs12">
+            <div id="sample">
+              <div id="myDiagramDiv"
+                style="background-color: whitesmoke; border: solid 1px #666; width: 100%; height: calc(100vh - 195px)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="layadmin-tabspage-none">
+      <div class="layui-layout layui-layout-admin">
+        <div class="layui-side layui-side-menu layui-layout-right" style="width: 266px;right: -17px !important">
+          <div class="layui-side-scroll layui-layout-right">
+            <div class="layui-logo layui-layout-right" style="position: fixed !important" lay-href="">
+              <span>右边数据</span>
+            </div>
+            <div class="eleTree treeright" lay-filter="treeright"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+<script src="./dist/layui/layui.all.js"></script>
+<script src="./dist/eleTree/eleTree.js"></script>
+<script src="./dist/GoJS/release/go.js"></script>
+<script src="./dist/vue.min.js"></script>
+<script>
+  var eleTree = layui.eleTree
+  var $ = layui.jquery
+  var data = []
+
+
+  var tree = new Vue({
+    el: "#tree",
+    data: {
+      getData: [],
+      activeClass: -1,
+      getDataL: [],
+      getDataR: [],
+      chooseOneL: [],
+      chooseOneR: [],
+      rData: [],
+      lData: [],
+      allData: []
+    },
+    methods: {
+      getItem(index, item) {
+        var _this = this
+        this.activeClass = index;
+        _this.chooseOneL = []
+        _this.chooseOneR = []
+        GetSubJson(_this.getDataL, item.entity1, _this.chooseOneL);
+        GetSubJson(_this.getDataR, item.entity2, _this.chooseOneR);
+        function GetSubJson(jsonData, destID, json) {
+          for (var i = 0; i < jsonData.length; i++) {
+            if (jsonData[i].label == destID) {
+              json.push(jsonData[i]);
+            }
+            else {
+              if (jsonData[i].hasOwnProperty("children")) {
+                GetSubJson(jsonData[i].children, destID, json);
+              }
+            }
+          }
+        }
+        _this.changeData()
+      },
+      changeData: function (data) {
+        var _this = this
+        _this.allData = []
+        _this.lData = []
+        _this.allData.push(_this.chooseOneL[0])
+        _this.allData.push(_this.chooseOneR[0])
+        var arr = []
+        GetSubJson(_this.allData, arr);
+        function GetSubJson(jsonData, json) {
+          const obj = {}
+          for (var i = 0; i < jsonData.length; i++) {
+            obj.key = jsonData[i].label;
+            obj.text = jsonData[i].comment
+            json.push(obj);
+            if (jsonData[i].hasOwnProperty("children")) {
+              GetSubJson(jsonData[i].children, json);
+            }
+          }
+        }
+
+        var arrJson = []
+        GetJson(searchInit(_this.chooseOneL),arrJson)
+        function GetJson(jsonData,json) {
+          const obj1 = {}
+          for (var i = 0; i < jsonData.length; i++) {
+            console.log(json)
+            obj1.from = jsonData[i].label;
+            obj1.text = jsonData[i].comment;
+            if(jsonData[i].hasOwnProperty("parentNode")) {
+              obj1.to = jsonData[i].parentNode[0]
+              console.log(obj1)
+            }
+            // json.push(obj1);
+            if (jsonData[i].hasOwnProperty("children")) {
+              GetJson(jsonData[i].children, json);
+            }
+          }
+        }
+
+        console.log(arrJson)
+        // searchInit(_this.chooseOneL)
+        function searchInit(json) {
+          var newJson = json.concat([]);
+          var len = newJson.length;   //长度
+          var parentNode = [];
+          for (var i = 0; i < len; i++) {
+            var item = newJson[i];
+            if (item.children && item.children.length != 0) {
+              var child = item.children;
+              for (var j = 0; j < child.length; j++) {
+                if (item.parentNode) {
+                  child[j].parentNode = item.parentNode.concat([item.id]);
+                }
+                else {
+                  child[j].parentNode = [item.id]
+                }
+                newJson[len + j] = child[j];
+              }
+              len = newJson.length;
+            }
+          }
+          return newJson;
+        }
+      }
+    },
+    mounted: function () {
+      getJson3(this)
+      var _this = this
+      new Promise((resolve, reject) => {
+        $.ajax({
+          type: "get",
+          url: "https://www.easy-mock.com/mock/5cebd5af895402060a66c052/example/treeDataLR",
+          success: function (result) {
+            resolve(changeData(result.data))
+            _this.getDataL = result.data
+            _this.getDataR = result.data
+            init()
+          }
+        })
+      }).then(data => {
+        var elLeft = eleTree.render({
+          elem: '.treeleft',
+          data: data,
+          // showCheckbox: true,
+          defaultExpandAll: true,
+          searchNodeMethod: function (value, data) {
+            console.log(data)
+            if (!value) return true;
+            return data.label.indexOf(value) !== -1;
+          }
+        });
+        var elRight = eleTree.render({
+          elem: '.treeright',
+          data: data,
+          // showCheckbox: true,
+          defaultExpandAll: true,
+          searchNodeMethod: function (value, data) {
+            console.log(data)
+            if (!value) return true;
+            return data.label.indexOf(value) !== -1;
+          }
+        });
+      })
+
+    }
+  })
+
+  function getJson3(obj) {
+    $.ajax({
+      url: "https://www.easy-mock.com/mock/5cebd5af895402060a66c052/example/treeData3",
+      type: "get",
+      dataType: "json",
+      success: function (data) {
+        obj.getData = data.data
+      }
+    })
+  }
+
+  function changeData(item) {
+    for (let i = 0; i < item.length; i++) {
+      item[i]["children"] = item[i].childs;
+      if (item[i].hasOwnProperty("childs")) {
+        var oChild = item[i].childs;
+        item[i]["children"] = item[i].childs;
+        changeData(oChild);
+      }
+    }
+    return item;
+  }
+
+  function ContinuousForceDirectedLayout() {
+    go.ForceDirectedLayout.call(this);
+    this._isObserving = false;
+  }
+  go.Diagram.inherit(ContinuousForceDirectedLayout, go.ForceDirectedLayout);
+
+  ContinuousForceDirectedLayout.prototype.isFixed = function (v) {
+    return v.node.isSelected;
+  }
+
+  // optimization: reuse the ForceDirectedNetwork rather than re-create it each time
+  ContinuousForceDirectedLayout.prototype.doLayout = function (coll) {
+    if (!this._isObserving) {
+      this._isObserving = true;
+      // cacheing the network means we need to recreate it if nodes or links have been added or removed or relinked,
+      // so we need to track structural model changes to discard the saved network.
+      var lay = this;
+      this.diagram.addModelChangedListener(function (e) {
+        // modelChanges include a few cases that we don't actually care about, such as
+        // "nodeCategory" or "linkToPortId", but we'll go ahead and recreate the network anyway.
+        // Also clear the network when replacing the model.
+        if (e.modelChange !== "" ||
+          (e.change === go.ChangedEvent.Transaction && e.propertyName === "StartingFirstTransaction")) {
+          lay.network = null;
+        }
+      });
+    }
+    var net = this.network;
+    if (net === null) {  // the first time, just create the network as normal
+      this.network = net = this.makeNetwork(coll);
+    } else {  // but on reuse we need to update the LayoutVertex.bounds for selected nodes
+      this.diagram.nodes.each(function (n) {
+        var v = net.findVertex(n);
+        if (v !== null) v.bounds = n.actualBounds;
+      });
+    }
+    // now perform the normal layout
+    go.ForceDirectedLayout.prototype.doLayout.call(this, coll);
+    // doLayout normally discards the LayoutNetwork by setting Layout.network to null;
+    // here we remember it for next time
+    this.network = net;
+  }
+  // end ContinuousForceDirectedLayout
+
+
+  function init() {
+    if (window.goSamples) goSamples();  // init for these samples -- you don't need to call this
+    var $ = go.GraphObject.make;  // for conciseness in defining templates
+
+    myDiagram =
+      $(go.Diagram, "myDiagramDiv",  // must name or refer to the DIV HTML element
+        {
+          initialAutoScale: go.Diagram.Uniform,  // an initial automatic zoom-to-fit
+          contentAlignment: go.Spot.Center,  // align document to the center of the viewport
+          layout:
+            $(ContinuousForceDirectedLayout,  // automatically spread nodes apart while dragging
+              { defaultSpringLength: 30, defaultElectricalCharge: 100 }),
+          // do an extra layout at the end of a move
+          "SelectionMoved": function (e) { e.diagram.layout.invalidateLayout(); }
+        });
+
+    // dragging a node invalidates the Diagram.layout, causing a layout during the drag
+    myDiagram.toolManager.draggingTool.doMouseMove = function () {
+      go.DraggingTool.prototype.doMouseMove.call(this);
+      if (this.isActive) { this.diagram.layout.invalidateLayout(); }
+    }
+
+    // define each Node's appearance
+    myDiagram.nodeTemplate =
+      $(go.Node, "Auto",  // the whole node panel
+        // define the node's outer shape, which will surround the TextBlock
+        $(go.Shape, "Circle",
+          { fill: "CornflowerBlue", stroke: "black", spot1: new go.Spot(0, 0, 5, 5), spot2: new go.Spot(1, 1, -5, -5) }),
+        $(go.TextBlock,
+          { font: "bold 10pt helvetica, bold arial, sans-serif", textAlign: "center", maxSize: new go.Size(100, NaN) },
+          new go.Binding("text", "text"))
+      );
+    // the rest of this app is the same as samples/conceptMap.html
+
+    // replace the default Link template in the linkTemplateMap
+    myDiagram.linkTemplate =
+      $(go.Link,  // the whole link panel
+        $(go.Shape,  // the link shape
+          { stroke: "black" }),
+        $(go.Shape,  // the arrowhead
+          { toArrow: "standard", stroke: null }),
+        $(go.Panel, "Auto",
+          $(go.Shape,  // the label background, which becomes transparent around the edges
+            {
+              fill: $(go.Brush, "Radial", { 0: "rgb(240, 240, 240)", 0.3: "rgb(240, 240, 240)", 1: "rgba(240, 240, 240, 0)" }),
+              stroke: null
+            }),
+          $(go.TextBlock,  // the label text
+            {
+              textAlign: "center",
+              font: "10pt helvetica, arial, sans-serif",
+              stroke: "#555555",
+              margin: 4
+            },
+            new go.Binding("text", "text"))
+        )
+      );
+
+    // create the model for the concept map
+    var nodeDataArray = [
+      { key: 1, text: "Concept Maps" },
+      { key: 2, text: "Organized Knowledge" },
+      { key: 3, text: "Context Dependent" },
+      { key: 4, text: "Concepts" },
+      { key: 5, text: "Propositions" },
+      { key: 6, text: "Associated Feelings or Affect" },
+      { key: 7, text: "Perceived Regularities" },
+      { key: 8, text: "Labeled" },
+      { key: 9, text: "Hierarchically Structured" },
+      { key: 10, text: "Effective Teaching" },
+      { key: 11, text: "Crosslinks" },
+      { key: 12, text: "Effective Learning" },
+      { key: 13, text: "Events (Happenings)" },
+      { key: 14, text: "Objects (Things)" },
+      { key: 15, text: "Symbols" },
+      { key: 16, text: "Words" },
+      { key: 17, text: "Creativity" },
+      { key: 18, text: "Interrelationships" },
+      { key: 19, text: "Infants" },
+      { key: 20, text: "Different Map Segments" }
+    ];
+    var linkDataArray = [
+      { from: 1, to: 2, text: "represent" },
+      { from: 2, to: 3, text: "is" },
+      { from: 2, to: 4, text: "is" },
+      { from: 2, to: 5, text: "is" },
+      { from: 2, to: 6, text: "includes" },
+      { from: 2, to: 10, text: "necessary\nfor" },
+      { from: 2, to: 12, text: "necessary\nfor" },
+      { from: 4, to: 5, text: "combine\nto form" },
+      { from: 4, to: 6, text: "include" },
+      { from: 4, to: 7, text: "are" },
+      { from: 4, to: 8, text: "are" },
+      { from: 4, to: 9, text: "are" },
+      { from: 5, to: 9, text: "are" },
+      { from: 5, to: 11, text: "may be" },
+      { from: 7, to: 13, text: "in" },
+      { from: 7, to: 14, text: "in" },
+      { from: 7, to: 19, text: "begin\nwith" },
+      { from: 8, to: 15, text: "with" },
+      { from: 8, to: 16, text: "with" },
+      { from: 9, to: 17, text: "aids" },
+      { from: 11, to: 18, text: "show" },
+      { from: 12, to: 19, text: "begins\nwith" },
+      { from: 17, to: 18, text: "needed\nto see" },
+      { from: 18, to: 20, text: "between" }
+    ];
+    myDiagram.model = new go.GraphLinksModel(nodeDataArray, linkDataArray);
+  }
+
+  function reload() {
+    //myDiagram.layout.network = null;
+    var text = myDiagram.model.toJson();
+    myDiagram.model = go.Model.fromJson(text);
+  }
+</script>
+
+</html>
